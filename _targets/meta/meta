@@ -1,0 +1,13 @@
+name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+get_payments.sql|stem|74090262633cb34b|2ad5239ba9e0e0ad|2c530c1562a7fbd1|-2048743091|queries/get_payments.sql|t20285.557382828s|s334b|334|file|local|vector|||0.068||
+customers_report|stem|a42b76a2a50bbfec|b7067adfe8c09764|66d1f93b8562c8c4|1402964759||t20285.5635502579s|s1540b|1540|rds|local|vector|||0.445||
+payment_methods|stem|5c76c0decc78a6ae|c3aacaadf660da65|b46fe3261ea56881|1052902205||t20285.8437089792s|s162b|162|rds|local|vector|||0.507||
+get_customers.sql|stem|756eeb8abaacc462|7958ca7affc98956|2c530c1562a7fbd1|936237168|queries/get_customers.sql|t20285.8361021599s|s1050b|1050|file|local|vector|||0.086||
+payments_report|stem|45f12884fd35486d|60b01620624c340d|8d01ba8572c67d97|382522684||t20285.8451941618s|s808b|808|rds|local|vector|||2.164||
+duckdb_file|stem|d27f676eaca46653|3d5e7ed1e6e27ffe|80c67f6e6dc546ef|1865695237||t20285.8575120813s|s68b|68|rds|local|vector|||0.365||
+spatial_sim|stem|ea233243a5dda58e|acae986b951cfa41|2c530c1562a7fbd1|151553939||t20285.8666704655s|s184071b|184071|rds|local|vector|||0.207||
+add_sim_data|stem|8e64dc993f911252|8e0c99d27d578893|b6a758b3901d065d|1478825253||t20285.8668791941s|s48b|48|rds|local|vector|||0.885||
+get_payment_methods|function|72ee3157090e9bc9
+setup_duckdb|function|0c23346136d02496
+spatial_filter_1.sql|stem|760013558f0ee0f2|328cf6e7bb8d918d|2c530c1562a7fbd1|-1364124729|queries/spatial_filter_1.sql|t20285.8835059953s|s248b|248|file|local|vector|||0.201||
+sim_filter_1|stem|a77eb67566c2ed82|4e71e73970826c18|1983d067e2438ad7|-694280289||t20285.883575411s|s1882b|1882|rds|local|vector|||0.41||
