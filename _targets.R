@@ -18,7 +18,8 @@ sqltargets_option_set("sqltargets.template_engine", "jinjar")
 list(
   tar_target(
     name = spatial_sim_base,
-    command = simulate_spatial_data(10000)
+    command = simulate_spatial_data(10000),
+    format = "parquet"
   ),
   tar_target(
     # Shows we can create a DuckDB database file from a target
@@ -41,22 +42,35 @@ list(
         overwrite = TRUE,
         row.names = FALSE
       )
+      cols <- dbGetQuery(con, "PRAGMA table_info('Spatial_Simulation')")$name
+      cols_sql <- paste0("CAST(", cols, " AS VARCHAR)")
+      concat_cols <- paste(cols_sql, collapse = ", '||', ")
+
+      checksum_query <- glue::glue(
+        "SELECT md5(string_agg(row_str, '||')) AS checksum FROM (
+     SELECT concat_ws('||', {concat_cols}) AS row_str
+     FROM Spatial_Simulation
+       ) t"
+      )
+
+      checksum <- dbGetQuery(con, checksum_query)$checksum
+      return(checksum)
     }
   ),
-  tar_target(
-    params,
-    command = {
-      # add_sim_data # To chain the pipeline together
-      list(x_threshold = 0.051, y_threshold = 0.09)
-    }
-  ),
-  tar_sql(
-    # We can use the DuckDB connection to run SQL queries
-    # and return the results as a target (e.g., a data frame)
-    sim_filter_1,
-    "queries/spatial_filter_1.sql",
-    params = params
-  ),
+  # tar_target(
+  #   params,
+  #   command = {
+  #     # add_sim_data # To chain the pipeline together
+  #     list(x_threshold = 0.051, y_threshold = 0.09)
+  #   }
+  # ),
+  # tar_sql(
+  #   # We can use the DuckDB connection to run SQL queries
+  #   # and return the results as a target (e.g., a data frame)
+  #   sim_filter_1,
+  #   "queries/spatial_filter_1.sql",
+  #   params = params
+  # ),
   tar_target(
     name = spatial_sim_01,
     command = simulate_spatial_data(100)
@@ -66,8 +80,10 @@ list(
     # and write a target to it
     name = append_data,
     command = {
+      add_sim_data # To chain the pipeline together
       con <- DBI::dbConnect(duckdb::duckdb(), dbdir = duckdb_file)
       on.exit(DBI::dbDisconnect(con))
+
       table <- as_tibble(spatial_sim_01)
       dbWriteTable(
         con,
@@ -76,11 +92,21 @@ list(
         append = FALSE,
         row.names = FALSE
       )
+
+      cols <- dbGetQuery(con, "PRAGMA table_info('Spatial_Simulation_01')")$name
+      cols_sql <- paste0("CAST(", cols, " AS VARCHAR)")
+      concat_cols <- paste(cols_sql, collapse = ", '||', ")
+
+      checksum_query <- glue::glue(
+        "SELECT md5(string_agg(row_str, '||')) AS checksum FROM (
+     SELECT concat_ws('||', {concat_cols}) AS row_str
+     FROM Spatial_Simulation_01
+       ) t"
+      )
+
+      checksum <- dbGetQuery(con, checksum_query)$checksum
+      return(checksum)
     }
-  ),
-  tar_sql(
-    sim_closest_mean,
-    "queries/closest_mean.sql"
   )
 )
 

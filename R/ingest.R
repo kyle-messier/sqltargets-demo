@@ -35,21 +35,28 @@ get_table_checksum <- function(
   con = NULL
 ) {
   handle_inputs(schema, table, query)
+
   if (!missing(table)) {
-    logger::log_info("Fetching checksum from {schema}.{table}")
+    logger::log_info("Fetching checksum from {table}")
     checksum_query <- glue::glue(
-      "SELECT md5(array_agg(t.*)::text) AS checksum FROM {schema}.{table} t"
+      "SELECT md5(string_agg(row_str, '||')) AS checksum
+       FROM (
+         SELECT concat_ws('||', *) AS row_str
+         FROM {table}
+       ) t"
     )
   } else {
     checksum_query <- glue::glue(
-      "SELECT md5(array_agg(t.*)::text) AS checksum FROM ({query}) t"
+      "SELECT md5(string_agg(row_str, '||')) AS checksum
+       FROM (
+         SELECT concat_ws('||', *) AS row_str
+         FROM ({query}) t
+       ) sub"
     )
   }
 
   checksum <- DBI::dbGetQuery(con, statement = checksum_query)$checksum
-
-  msg <- ifelse(is.null(table), "query", glue::glue("{schema}.{table}"))
+  msg <- ifelse(is.null(table), "query", table)
   logger::log_info("Checksum for {msg} is {checksum}")
-
   return(checksum)
 }
