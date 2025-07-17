@@ -1,4 +1,4 @@
--- !preview conn=DBI::dbConnect(duckdb::duckdb(), "database.duckdb", read_only = TRUE)
+-- !preview conn=DBI::dbConnect(duckdb::duckdb(), "myspatial.duckdb", read_only = TRUE)
 
 with spatial_data as (
   select * from Spatial_Simulation
@@ -6,6 +6,6 @@ with spatial_data as (
 filtered as (
   select *
   from spatial_data
-  where x < 0.1 and y > 0.9
+  where x < {{ params.x_threshold }} and y > {{ params.y_threshold }}
 )
 select * from filtered;

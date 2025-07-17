@@ -1,4 +1,5 @@
 library(targets)
+library(tarchetypes)
 library(sqltargets)
 library(tidyverse)
 
@@ -15,61 +16,84 @@ tar_source()
 sqltargets_option_set("sqltargets.template_engine", "jinjar")
 
 list(
-  tar_target(payment_methods, get_payment_methods()),
-  tar_sql(customers_report, "queries/get_customers.sql"),
-  tar_sql(
-    payments_report,
-    "queries/get_payments.sql",
-    params = payment_methods
+  tar_target(
+    name = spatial_sim_base,
+    command = simulate_spatial_data(10000)
   ),
   tar_target(
-    name = spatial_sim,
-    command = {
-      # Number of points to simulate
-      n <- 10000
-
-      # Simulate n random (x, y) points in the unit square [0,1] x [0,1]
-      points <- data.frame(
-        x = runif(n, min = 0, max = 1),
-        y = runif(n, min = 0, max = 1)
-      )
-
-      # Define polynomial coefficients
-      beta <- c(
-        beta0 = 1,
-        beta1 = 2,
-        beta2 = -1.5,
-        beta3 = 0.5,
-        beta4 = 0.75,
-        beta5 = -1
-      )
-
-      # Simulate z using a 3D polynomial of x and y + random noise
-      points$z <- with(
-        points,
-        beta["beta0"] +
-          beta["beta1"] * x +
-          beta["beta2"] * y +
-          beta["beta3"] * x^2 +
-          beta["beta4"] * y^2 +
-          beta["beta5"] * x * y +
-          rnorm(n, sd = 0.2) # Gaussian noise
-      )
-      return(points)
-    }
-  ),
-  tar_target(
+    # Shows we can create a DuckDB database file from a target
+    # https://github.com/philiporlando/docker-duckdb-r/blob/main/R/setup_duckdb.R #nolint
     name = duckdb_file,
-    command = setup_duckdb("database.duckdb")
+    command = setup_duckdb("myspatial.duckdb")
   ),
   tar_target(
+    # This target shows we can open/close a DuckDB connection
+    # and write a target to it
     name = add_sim_data,
     command = {
       con <- DBI::dbConnect(duckdb::duckdb(), dbdir = duckdb_file)
       on.exit(DBI::dbDisconnect(con))
-      table <- as_tibble(spatial_sim)
-      dbWriteTable(con, "Spatial_Simulation", table)
+      table <- as_tibble(spatial_sim_base)
+      dbWriteTable(
+        con,
+        "Spatial_Simulation",
+        table,
+        overwrite = TRUE,
+        row.names = FALSE
+      )
     }
   ),
-  tar_sql(sim_filter_1, "queries/spatial_filter_1.sql")
+  tar_target(
+    params,
+    command = {
+      # add_sim_data # To chain the pipeline together
+      list(x_threshold = 0.051, y_threshold = 0.09)
+    }
+  ),
+  tar_sql(
+    # We can use the DuckDB connection to run SQL queries
+    # and return the results as a target (e.g., a data frame)
+    sim_filter_1,
+    "queries/spatial_filter_1.sql",
+    params = params
+  ),
+  tar_target(
+    name = spatial_sim_01,
+    command = simulate_spatial_data(100)
+  ),
+  tar_target(
+    # This target shows we can open/close a DuckDB connection
+    # and write a target to it
+    name = append_data,
+    command = {
+      con <- DBI::dbConnect(duckdb::duckdb(), dbdir = duckdb_file)
+      on.exit(DBI::dbDisconnect(con))
+      table <- as_tibble(spatial_sim_01)
+      dbWriteTable(
+        con,
+        "Spatial_Simulation_01",
+        table,
+        append = FALSE,
+        row.names = FALSE
+      )
+    }
+  )
 )
+
+# To Do:
+# 1) Add rows to current DuckDB table
+# - Result 1: hard coded target with DBI append works
+# - Wakey ordering of targets
+# 2) Add a new table to the DuckDB database
+# Result: Works easy!
+# 3) Add new columns to the existing table
+# 4) Add a new query to the DuckDB database
+# 5) Query that involves multiple tables
+# 6) Try {sf} based queries with {duckspatial}
+
+# If updating the DDB does not work, try tracking with hashing approach
+# with an ingest+hash function
+
+# If this works and is fast - think about how
+# DuckDB can be used to store/access all of the major data
+# in Beethoven
