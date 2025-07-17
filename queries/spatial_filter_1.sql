@@ -1,7 +1,7 @@
--- !preview conn=DBI::dbConnect(duckdb::duckdb(), "myspatial.duckdb", read_only = TRUE)
+-- !preview conn=DBI::dbConnect(duckdb::duckdb(), read_only = TRUE)
 
 with spatial_data as (
-  select * from Spatial_Simulation
+  select * from read_parquet('{{ params.parquet_path }}')
 ),
 filtered as (
   select *

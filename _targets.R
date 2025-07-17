@@ -19,94 +19,41 @@ list(
   tar_target(
     name = spatial_sim_base,
     command = simulate_spatial_data(10000),
-    format = "parquet"
+    format = "parquet",
+    resources = targets::tar_resources(
+      parquet = targets::tar_resources_parquet(compression = "lz4")
+    )
   ),
   tar_target(
-    # Shows we can create a DuckDB database file from a target
-    # https://github.com/philiporlando/docker-duckdb-r/blob/main/R/setup_duckdb.R #nolint
-    name = duckdb_file,
-    command = setup_duckdb("myspatial.duckdb")
-  ),
-  tar_target(
-    # This target shows we can open/close a DuckDB connection
-    # and write a target to it
-    name = add_sim_data,
+    params,
     command = {
-      con <- DBI::dbConnect(duckdb::duckdb(), dbdir = duckdb_file)
-      on.exit(DBI::dbDisconnect(con))
-      table <- as_tibble(spatial_sim_base)
-      dbWriteTable(
-        con,
-        "Spatial_Simulation",
-        table,
-        overwrite = TRUE,
-        row.names = FALSE
-      )
-      cols <- dbGetQuery(con, "PRAGMA table_info('Spatial_Simulation')")$name
-      cols_sql <- paste0("CAST(", cols, " AS VARCHAR)")
-      concat_cols <- paste(cols_sql, collapse = ", '||', ")
-
-      checksum_query <- glue::glue(
-        "SELECT md5(string_agg(row_str, '||')) AS checksum FROM (
-     SELECT concat_ws('||', {concat_cols}) AS row_str
-     FROM Spatial_Simulation
-       ) t"
-      )
-
-      checksum <- dbGetQuery(con, checksum_query)$checksum
-      return(checksum)
+      # add sim_combined target to the list to chain the pipeline together
+      list(parquet_path = "_targets/objects/sim_combined", x_threshold = 0.051, y_threshold = 0.09, sim_combined)
     }
   ),
-  # tar_target(
-  #   params,
-  #   command = {
-  #     # add_sim_data # To chain the pipeline together
-  #     list(x_threshold = 0.051, y_threshold = 0.09)
-  #   }
-  # ),
-  # tar_sql(
-  #   # We can use the DuckDB connection to run SQL queries
-  #   # and return the results as a target (e.g., a data frame)
-  #   sim_filter_1,
-  #   "queries/spatial_filter_1.sql",
-  #   params = params
-  # ),
+
   tar_target(
     name = spatial_sim_01,
-    command = simulate_spatial_data(100)
+    command = simulate_spatial_data(1000),
+    format = "parquet",
+    resources = targets::tar_resources(
+      parquet = targets::tar_resources_parquet(compression = "lz4")
+    )
   ),
-  tar_target(
-    # This target shows we can open/close a DuckDB connection
-    # and write a target to it
-    name = append_data,
-    command = {
-      add_sim_data # To chain the pipeline together
-      con <- DBI::dbConnect(duckdb::duckdb(), dbdir = duckdb_file)
-      on.exit(DBI::dbDisconnect(con))
-
-      table <- as_tibble(spatial_sim_01)
-      dbWriteTable(
-        con,
-        "Spatial_Simulation_01",
-        table,
-        append = FALSE,
-        row.names = FALSE
-      )
-
-      cols <- dbGetQuery(con, "PRAGMA table_info('Spatial_Simulation_01')")$name
-      cols_sql <- paste0("CAST(", cols, " AS VARCHAR)")
-      concat_cols <- paste(cols_sql, collapse = ", '||', ")
-
-      checksum_query <- glue::glue(
-        "SELECT md5(string_agg(row_str, '||')) AS checksum FROM (
-     SELECT concat_ws('||', {concat_cols}) AS row_str
-     FROM Spatial_Simulation_01
-       ) t"
-      )
-
-      checksum <- dbGetQuery(con, checksum_query)$checksum
-      return(checksum)
-    }
+  tar_sql(
+    sim_combined,
+    "queries/combine_parquet.sql",
+    format = "parquet",
+    resources = targets::tar_resources(
+      parquet = targets::tar_resources_parquet(compression = "lz4")
+    )
+  ),
+  tar_sql(
+    # We can use the DuckDB connection to run SQL queries
+    # and return the results as a target (e.g., a data frame)
+    sim_filter_1,
+    "queries/spatial_filter_1.sql",
+    params = params
   )
 )
 
