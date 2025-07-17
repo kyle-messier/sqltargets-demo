@@ -8,15 +8,17 @@ payments_report|stem|67d4679756b8759d|60b01620624c340d|d0c37c28f7195d01|38252268
 get_payment_methods|function|d1c4ffd4a49f836c
 spatial_filter_1.sql|stem|7fbd7e006cfa42b0|328cf6e7bb8d918d|2c530c1562a7fbd1|-1364124729|queries/spatial_filter_1.sql|t20286.1075993053s|s291b|291|file|local|vector|||0.101||
 sim_filter_1|stem|03c349ee3e9cf5ed|cd03888e1495d9a5|b91efafd41b93d00|-694280289||t20286.1098708595s|s8774b|8774|rds|local|vector|||0.953||
-spatial_sim_01|stem|6129158d306c10dd|1ad1e4854197e703|7a6abc73982385cc|666655861||t20286.1131414875s|s2074b|2074|rds|local|vector|||0.214||
-spatial_sim_base|stem|a35ff2de044ed133|13bcc1315d361088|7a6abc73982385cc|527427811||t20286.1131421242s|s184050b|184050|rds|local|vector|||0.002||
 params|stem|488208c52587cbd3|ad726a3c76616ae2|2c530c1562a7fbd1|-675321759||t20286.1413274328s|s113b|113|rds|local|vector|||0||
 duckdb_file|stem|2c1b04dfdd740f54|13c53c957e161b89|80c67f6e6dc546ef|1865695237||t20286.1423750485s|s68b|68|rds|local|vector|||0.189||
 add_sim_data|stem|8e64dc993f911252|61a232ce8fcf9eeb|68cd99b0e0104944|1478825253||t20286.1423798199s|s48b|48|rds|local|vector|||0.183||
 spatial_sim_02|stem|c414e16e7383de0f|1ad1e4854197e703|7a6abc73982385cc|-58328184||t20286.1577945556s|s2863b|2863|format_custom&read=dGFyY2hldHlwZXM6OnRhcl9uYW5vcGFycXVldF9yZWFkKHBhdGgsICJ0YmwiKQ&write=dGFyY2hldHlwZXM6OnRhcl9uYW5vcGFycXVldF93cml0ZShvYmplY3QsIHBhdGgsICJzbmFwcHkiKQ&marshal=&unmarshal=&convert=dGFyY2hldHlwZXM6OnRhcl9uYW5vcGFycXVldF9jb252ZXJ0KG9iamVjdCwgInRibCIp&copy=&repository=|local|vector|||0.209||
+append_data|stem|8e64dc993f911252|bf3c5723665e4393|f28e0e143c3c4143|-210870479||t20286.1809291604s|s48b|48|rds|local|vector|||0.156||
+spatial_sim_01|stem|77333cd548a58da8|1ad1e4854197e703|91c0f8616f8f3d8a|666655861||t20286.1984789365s|s2123b|2123|rds|local|vector|||0.012||
+spatial_sim_base|stem|ab01d84508a53a22|13bcc1315d361088|91c0f8616f8f3d8a|527427811||t20286.1984796943s|s184121b|184121|rds|local|vector|||0.001||
 setup_duckdb|function|0c23346136d02496
 handle_inputs|function|aa6c161142e423b5
-simulate_spatial_data|function|c3ced01d53de91af
+simulate_spatial_data|function|cf3a340a42222e49
 ingest_data|function|ba225976809a6df3
 get_table_checksum|function|a1b44d6e02b108f9
-append_data|stem|8e64dc993f911252|bf3c5723665e4393|f28e0e143c3c4143|-210870479||t20286.1809291604s|s48b|48|rds|local|vector|||0.156||
+closest_mean.sql|stem|10f46ffb472f6e2d|06e0a8d649705984|2c530c1562a7fbd1|407915306|queries/closest_mean.sql|t20286.1988738557s|s711b|711|file|local|vector|||0.212||
+sim_closest_mean|stem||6596c0a629ee9a6a|dc2ee00dc45df4bf|-1936313513||t20286.1942677266s||0|rds|local|vector|||0.363||rapi_prepare: Failed to prepare query -- !preview conn=DBI::dbConnect(duckdb::duckdb(), 'myspatial.duckdb', read_only = TRUE)  with sim1 as (   select id as id1, x as x1, y as y1   from Spatial_Simulation_01 ), sim as (   select id as id2, x as x2, y as y2, z   from Spatial_Simulation ), distances as (   select     sim1.id1,     sim1.x1,     sim1.y1,     sim.z,     sqrt(power(sim1.x1 - sim.x2, 2) + power(sim1.y1 - sim.y2, 2)) as distance   from sim1   cross join sim ), ranked as (   select ,     row_number() over (partition by id1 order by distance) as rnk   from distances ), top5 as (   select    from ranked   where rnk <= 5 ), mean_z as (   select id1, x1, y1, avg(z) as mean_z   from top5   group by id1, x1, y1 ) select  from mean_z;  Error: Binder Error: Referenced column 'id' not found in FROM clause! Candidate bindings: 'x'  LINE 4:   select id as id1, x as x1, y as y1                  ^

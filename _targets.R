@@ -77,6 +77,10 @@ list(
         row.names = FALSE
       )
     }
+  ),
+  tar_sql(
+    sim_closest_mean,
+    "queries/closest_mean.sql"
   )
 )
 

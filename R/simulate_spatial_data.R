@@ -6,7 +6,9 @@
 #' @export
 simulate_spatial_data <- function(n = 100) {
   # Simulate n random (x, y) points in the unit square [0,1] x [0,1]
+  # create a random id
   points <- data.frame(
+    id = 1:n,
     x = runif(n, min = 0, max = 1),
     y = runif(n, min = 0, max = 1)
   )
