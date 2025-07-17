@@ -17,32 +17,37 @@ sqltargets_option_set("sqltargets.template_engine", "jinjar")
 
 list(
   tar_target(
-    name = spatial_sim_base,
-    command = simulate_spatial_data(10000),
-    format = "parquet",
-    resources = targets::tar_resources(
-      parquet = targets::tar_resources_parquet(compression = "lz4")
-    )
-  ),
-  tar_target(
     params,
     command = {
       # add sim_combined target to the list to chain the pipeline together
       list(parquet_path = "_targets/objects/sim_combined", x_threshold = 0.051, y_threshold = 0.09, sim_combined)
     }
   ),
-
   tar_target(
-    name = spatial_sim_01,
-    command = simulate_spatial_data(1000),
+    name = MC_iteration,
+    command = sample(c(1000, 5000, 10000), size = 10, replace = TRUE)
+  ),
+  tar_target(
+    name = spatial_sim,
+    command = simulate_spatial_data(MC_iteration),
     format = "parquet",
     resources = targets::tar_resources(
       parquet = targets::tar_resources_parquet(compression = "lz4")
-    )
+    ),
+    pattern = map(MC_iteration),
+    iteration = "list"
+  ),
+  tar_target(
+    name = file_paths,
+    command = {
+      spatial_sim
+      list(parquet_paths = list.files("_targets/objects/", pattern = "spatial_sim", full.names = TRUE))
+    }
   ),
   tar_sql(
     sim_combined,
     "queries/combine_parquet.sql",
+    params = file_paths,
     format = "parquet",
     resources = targets::tar_resources(
       parquet = targets::tar_resources_parquet(compression = "lz4")
