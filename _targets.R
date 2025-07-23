@@ -2,13 +2,27 @@ library(targets)
 library(tarchetypes)
 library(sqltargets)
 library(tidyverse)
+library(sf)
+library(terra)
+library(qs2)
+library(arrow)
+library(crew)
+library(dplyr)
 
 tar_option_set(
   packages = c(
     "DBI",
-    "duckdb"
-  ),
-  format = "rds"
+    "duckdb",
+    "sf",
+    "tarchetypes",
+    "sqltargets",
+    "qs2",
+    "arrow",
+    "crew",
+    "dplyr",
+    "terra",
+    "tidyverse"
+  )
 )
 
 tar_source()
@@ -59,6 +73,36 @@ list(
     sim_filter_1,
     "queries/spatial_filter_1.sql",
     params = params
+  ),
+  tar_target(
+    sf_pred_calc_split,
+    qs_read("beethoven_files/sf_pred_calc_split"),
+    iteration = "vector"
+  ),
+  tar_target(
+    df_pred_calc_gridcoords,
+    qs_read("beethoven_files/df_pred_calc_gridcoords")
+  ),
+  targets::tar_target(
+    list_pred_calc_grid,
+    command = {
+      grid_unit <- sf::st_bbox(sf_pred_calc_split)
+      sf::st_as_sf(
+        df_pred_calc_gridcoords |>
+          dplyr::filter(
+            (lon <= grid_unit[3] & lon >= grid_unit[1]) &
+              (lat <= grid_unit[4] & lat >= grid_unit[2])
+          ),
+        coords = c("lon", "lat"),
+        crs = 4326,
+        remove = FALSE
+      )
+    },
+    iteration = "list",
+    pattern = map(sf_pred_calc_split),
+    resources = targets::tar_resources(
+      parquet = targets::tar_resources_parquet(compression = "lz4")
+    )
   )
 )
 
